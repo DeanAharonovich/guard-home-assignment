@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import {
-  ChevronRight, RotateCcw, Trash2, ChevronDown, ChevronUp, Check,
+  RotateCcw, Trash2, ChevronDown, ChevronUp, Check,
   FileText, FileArchive, Terminal, Smartphone, Wifi, BatteryFull, AlertCircle, Star,
 } from "lucide-react";
 
