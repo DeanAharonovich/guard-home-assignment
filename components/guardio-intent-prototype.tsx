@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState, useEffect, useRef } from "react";
 import {
   RotateCcw, Trash2, ChevronDown, ChevronUp, Check,
@@ -106,8 +107,8 @@ const STEPS = ["preference", "scan", "intent", "setup"];
 const STEP_LABELS = { preference: "Preference", scan: "Loading", intent: "Personalized intent", setup: "Setup ask" };
 const CONSOLE_BODY_H = 420;
 
-function mergeVariant(config, featureId) {
-  const variant = config?.variants?.[featureId];
+function mergeVariant(config: any, featureId: string | null) {
+  const variant = config?.variants?.[featureId ?? ""];
   if (!variant) return config;
   return {
     ...config,
@@ -116,24 +117,26 @@ function mergeVariant(config, featureId) {
   };
 }
 
-function useCountUp(target, durationMs, active) {
+function useCountUp(target: number, durationMs: number, active: boolean) {
   const [val, setVal] = useState(active ? 0 : target);
   useEffect(() => {
     if (!active) {
       setVal(target);
       return;
     }
-    let raf;
-    let start = null;
+    let raf: number;
+    let start: number | null = null;
     setVal(0);
-    const step = (ts) => {
+    const step = (ts: number) => {
       if (start === null) start = ts;
       const progress = Math.min((ts - start) / Math.max(durationMs, 1), 1);
       setVal(Math.round(progress * target));
       if (progress < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-    return () => raf && cancelAnimationFrame(raf);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, durationMs, active]);
   return val;
@@ -143,7 +146,7 @@ function useCountUp(target, durationMs, active) {
 // trend illustration. The `highlightIndex` bar breaks from that palette into
 // a warm alert red/amber with a soft glow — the one restrained "alerting"
 // touch, everything else stays aligned to the reference design.
-function BarChart({ xAxisLabels = [], highlightIndex = -1 }) {
+function BarChart({ xAxisLabels = [], highlightIndex = -1 }: { xAxisLabels?: string[]; highlightIndex?: number }) {
   const count = xAxisLabels.length || 1;
   const heights = xAxisLabels.map((_, i) => 20 + (i + 1) * (60 / count));
   return (
@@ -183,11 +186,11 @@ function BarChart({ xAxisLabels = [], highlightIndex = -1 }) {
   );
 }
 
-function IconGrid({ icons = [], highlightIndex = -1 }) {
+function IconGrid({ icons = [], highlightIndex = -1 }: { icons?: string[]; highlightIndex?: number }) {
   return (
     <div className="flex gap-3 mt-5">
       {icons.map((key, i) => {
-        const Ico = ICON_MAP[key] || FileText;
+        const Ico = ICON_MAP[key as keyof typeof ICON_MAP] || FileText;
         const hot = i === highlightIndex;
         return (
           <div
@@ -209,7 +212,7 @@ function IconGrid({ icons = [], highlightIndex = -1 }) {
   );
 }
 
-function ComparisonBar({ labels = [], values = [] }) {
+function ComparisonBar({ labels = [], values = [] }: { labels?: string[]; values?: number[] }) {
   return (
     <div className="mt-5 space-y-2.5">
       {labels.map((label, i) => {
@@ -238,7 +241,7 @@ function ComparisonBar({ labels = [], values = [] }) {
   );
 }
 
-function StatVisual({ sv }) {
+function StatVisual({ sv }: { sv: any }) {
   if (!sv) return null;
   const target = sv.headline?.value ?? 0;
   const durationMs = sv.countUp?.durationMs ?? 800;
@@ -255,7 +258,7 @@ function StatVisual({ sv }) {
   );
 }
 
-function StatusBar({ dark }) {
+function StatusBar({ dark }: { dark: boolean }) {
   const c = dark ? "#ffffff" : "#000000";
   return (
     <div className="flex items-center justify-between px-6 pt-1 pb-1.5 text-[12px] font-semibold shrink-0" style={{ color: c }}>
@@ -274,7 +277,7 @@ function StatusBar({ dark }) {
   );
 }
 
-function ProgressBar({ stepIndex, dark }) {
+function ProgressBar({ stepIndex, dark }: { stepIndex: number; dark: boolean }) {
   const pct = ((stepIndex + 1) / STEPS.length) * 100;
   return (
     <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: dark ? "rgba(255,255,255,0.18)" : "#e5e7eb" }}>
@@ -300,7 +303,19 @@ const PHONE_W = 320;
 const PHONE_H = 660;
 const PHONE_PAD = 10;
 
-function PhoneFrame({ dark, stepIndex, showProgress, onRestart, children }) {
+function PhoneFrame({
+  dark,
+  stepIndex,
+  showProgress,
+  onRestart,
+  children,
+}: {
+  dark: boolean;
+  stepIndex: number;
+  showProgress: boolean;
+  onRestart: () => void;
+  children: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -363,7 +378,21 @@ function PhoneFrame({ dark, stepIndex, showProgress, onRestart, children }) {
 // Three interchangeable "here's what we caught" illustrations for the setup
 // step. Which one renders depends on what the user picked in the preference
 // step, so the closing screen echoes their specific concern.
-function AlertToast({ top, bottom, left = 6, width = 138, icon, text }) {
+function AlertToast({
+  top,
+  bottom,
+  left = 6,
+  width = 138,
+  icon,
+  text,
+}: {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  width?: number;
+  icon: ReactNode;
+  text: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -460,21 +489,22 @@ const SETUP_GRAPHICS = {
 };
 
 export default function GuardioIntentPrototype() {
-  const [step, setStep] = useState("preference");
-  const [pendingPreference, setPendingPreference] = useState(null);
-  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [step, setStep] = useState<string>("preference");
+  const [pendingPreference, setPendingPreference] = useState<string | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
 
   const [configText, setConfigText] = useState(() => JSON.stringify(DEFAULT_CONFIG, null, 2));
-  const [configObj, setConfigObj] = useState(DEFAULT_CONFIG);
-  const [configError, setConfigError] = useState(null);
+  const [configObj, setConfigObj] = useState<any>(DEFAULT_CONFIG);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   const [simulateFailureDraft, setSimulateFailureDraft] = useState(false);
   const [simulateFailure, setSimulateFailure] = useState(false);
 
-  const [events, setEvents] = useState([]);
+  type EventLogEntry = { id: string; ts: Date; name: string; props: Record<string, unknown> };
+  const [events, setEvents] = useState<EventLogEntry[]>([]);
   const [debugTab, setDebugTab] = useState("events");
   const [debugOpen, setDebugOpen] = useState(true);
-  const logRef = useRef(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   // Derived (not stored) so config/failure-flag edits reflect on whatever
   // screen is showing right now, immediately.
@@ -485,7 +515,7 @@ export default function GuardioIntentPrototype() {
     : mergeVariant(configObj, selectedFeature);
   const usedFallback = simulateFailure;
 
-  const addEvent = (name, props) => {
+  const addEvent = (name: string, props?: Record<string, unknown>) => {
     setEvents((prev) => [...prev, { id: `${Date.now()}-${Math.random()}`, ts: new Date(), name, props: props || {} }]);
   };
 
@@ -539,7 +569,7 @@ export default function GuardioIntentPrototype() {
       parsed = JSON.parse(configText);
       setConfigError(null);
     } catch (e) {
-      setConfigError(e.message);
+      setConfigError(e instanceof Error ? e.message : "Invalid JSON");
       return;
     }
     setConfigObj(parsed);
@@ -653,7 +683,8 @@ export default function GuardioIntentPrototype() {
               {step === "setup" && (
                 <div className="flex-1 flex flex-col" style={{ animation: "fadeSlide 350ms ease-out both" }}>
                   {(() => {
-                    const Graphic = SETUP_GRAPHICS[selectedFeature] || SiteBlockedGraphic;
+                    const Graphic =
+                      SETUP_GRAPHICS[selectedFeature as keyof typeof SETUP_GRAPHICS] || SiteBlockedGraphic;
                     return <Graphic />;
                   })()}
                   <h2 className="text-2xl font-bold text-black text-center leading-snug mb-2 mt-2">Browsing Protection</h2>
@@ -680,7 +711,9 @@ export default function GuardioIntentPrototype() {
             {STEPS.map((s, i) => (
               <div key={s} className="flex items-center gap-1.5">
                 <div className={`w-1.5 h-1.5 rounded-full ${i <= stepIndex ? "bg-blue-600" : "bg-slate-300"}`} />
-                <span className={`text-[10px] ${i <= stepIndex ? "text-slate-600" : "text-slate-400"}`}>{STEP_LABELS[s]}</span>
+                <span className={`text-[10px] ${i <= stepIndex ? "text-slate-600" : "text-slate-400"}`}>
+                  {STEP_LABELS[s as keyof typeof STEP_LABELS]}
+                </span>
                 {i < STEPS.length - 1 && <span className="text-slate-300 mx-0.5">&middot;</span>}
               </div>
             ))}
